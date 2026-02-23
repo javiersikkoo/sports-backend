@@ -17,61 +17,35 @@ app.get("/sync", async (req, res) => {
     if (!apiKey) {
       return res.status(500).json({
         success: false,
-        error: "SPORTS_API_KEY not defined in environment variables"
+        error: "SPORTS_API_KEY not defined"
       });
     }
 
     const baseUrl = "https://api.the-odds-api.com/v4";
 
-    // 1️⃣ Fetch all available sports (no limit)
-    const sportsResponse = await axios.get(`${baseUrl}/sports`, {
-      params: { apiKey }
-    });
+    // 🔥 SOLO FUTBOL (soccer)
+    const sportKey = "soccer_epl"; // Premier League ejemplo
 
-    const activeSports = sportsResponse.data
-      .filter(sport => sport.active && !sport.has_outrights);
-
-    let events = [];
-
-    // 2️⃣ Loop through all active sports
-    for (const sport of activeSports) {
-      try {
-        const oddsResponse = await axios.get(
-          `${baseUrl}/sports/${sport.key}/odds`,
-          {
-            params: {
-              apiKey,
-              regions: "eu,us,uk,au",
-              markets: "h2h",
-              oddsFormat: "decimal"
-            }
-          }
-        );
-
-        events.push(...oddsResponse.data);
-
-      } catch (sportError) {
-        console.error(
-          `Error fetching odds for ${sport.key}:`,
-          sportError.response?.data || sportError.message
-        );
-        continue;
+    const oddsResponse = await axios.get(
+      `${baseUrl}/sports/${sportKey}/odds`,
+      {
+        params: {
+          apiKey,
+          regions: "eu",
+          markets: "h2h",
+          oddsFormat: "decimal"
+        }
       }
-    }
+    );
 
     res.json({
       success: true,
-      sportsFetched: activeSports.length,
-      eventsFetched: events.length,
-      data: events
+      sport: sportKey,
+      eventsFetched: oddsResponse.data.length,
+      data: oddsResponse.data
     });
 
   } catch (err) {
-    console.error(
-      "SYNC ERROR:",
-      err.response?.data || err.message
-    );
-
     res.status(500).json({
       success: false,
       error: err.response?.data || err.message
